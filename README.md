@@ -1,18 +1,20 @@
-# NOWPayments API Client
+# NOWPayments API Client for Node.js
 
-Node.js client for the NOWPayments cryptocurrency payment processing API with WebSocket support.
+A powerful and feature-rich Node.js client for the NOWPayments cryptocurrency payment gateway API with WebSocket support for real-time payment updates.
 
-[![npm version](https://badge.fury.io/js/nowpayments-api.svg)](https://badge.fury.io/js/nowpayments-api)
+[![npm version](https://img.shields.io/npm/v/nowpayments-api.svg)](https://www.npmjs.com/package/nowpayments-api)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
-- Complete TypeScript support
-- Real-time payment updates via WebSocket
-- Automatic retry mechanism
-- Rate limiting
-- Comprehensive validation
-- IPN verification
-- Sandbox environment support
+- 🚀 Complete NOWPayments API integration
+- ⚡ Real-time payment updates via WebSocket
+- 🔒 Strong TypeScript support
+- ✅ Input validation
+- 🔄 Automatic retries with exponential backoff
+- ⚖️ Rate limiting
+- 🏦 Sandbox environment support
+- 📝 Comprehensive documentation
 
 ## Installation
 
@@ -23,147 +25,211 @@ npm install nowpayments-api
 ## Quick Start
 
 ```javascript
-const NowPaymentsAPI = require('nowpayments-api');
+const { createClient, createWebSocketClient } = require("nowpayments-api");
 
-const api = new NowPaymentsAPI({
-  apiKey: 'YOUR_API_KEY',
-  sandbox: true // Use sandbox environment
+// Initialize API client
+const client = createClient({
+  apiKey: "YOUR_API_KEY",
+  ipnSecret: "YOUR_IPN_SECRET", // Optional
+  sandbox: false, // Optional, defaults to false
 });
 
 // Create payment
-const payment = await api.createPayment({
+const payment = await client.createPayment({
   price_amount: 100,
-  price_currency: 'USD',
-  pay_currency: 'BTC'
+  price_currency: "USD",
+  pay_currency: "BTC",
 });
 
-// Get payment status
-const status = await api.getPaymentStatus(payment.payment_id);
-```
+// Initialize WebSocket client for real-time updates
+const ws = createWebSocketClient("YOUR_API_KEY");
 
-## WebSocket Usage
-
-```javascript
-const { NOWPaymentsWebSocket } = require('nowpayments-api');
-
-const ws = new NOWPaymentsWebSocket('YOUR_API_KEY', {
-  maxReconnectAttempts: 5,
-  reconnectDelay: 1000
-});
-
-ws.on('connected', () => {
-  console.log('WebSocket connected');
-});
-
-ws.on('payment_update', event => {
-  console.log('Payment updated:', event.data);
+ws.on("payment_update", (update) => {
+  console.log("Payment update received:", update);
 });
 
 ws.connect();
 ```
 
-## API Documentation
+## API Methods
 
-### Configuration
+### Payments
 
 ```javascript
-const api = new NowPaymentsAPI({
-  apiKey: 'YOUR_API_KEY', // Required
-  ipnSecret: 'YOUR_SECRET', // Optional: For IPN verification
-  sandbox: false // Optional: Use production environment
+// Create payment
+const payment = await client.createPayment({
+  price_amount: 100,
+  price_currency: "USD",
+  pay_currency: "BTC",
+});
+
+// Get payment status
+const status = await client.getPaymentStatus("payment_id");
+
+// Get payments list
+const payments = await client.getPayments({
+  limit: 50,
+  page: 1,
 });
 ```
 
-### Available Methods
+### Invoices
 
-#### Payments
+```javascript
+// Create invoice
+const invoice = await client.createInvoice({
+  price_amount: 100,
+  price_currency: "USD",
+});
+```
 
-- `createPayment(params)`: Create new payment
-- `getPaymentStatus(id)`: Get payment status
-- `getPayments(params)`: List payments
-- `getMinimumPaymentAmount(currency)`: Get minimum payment amount
+### Currencies & Estimates
 
-#### Invoices
+```javascript
+// Get available currencies
+const currencies = await client.getCurrencies();
 
-- `createInvoice(params)`: Create payment invoice
+// Get price estimate
+const estimate = await client.getEstimatePrice({
+  amount: 100,
+  currency_from: "USD",
+  currency_to: "BTC",
+});
+```
 
-#### Currencies
+### Payouts
 
-- `getCurrencies()`: Get available cryptocurrencies
-- `getEstimatePrice(params)`: Get estimated price
+```javascript
+// Create payout
+const payout = await client.createPayout({
+  address: "crypto_address",
+  amount: 1.5,
+  currency: "BTC",
+});
+```
 
-#### Payouts
+### WebSocket Events
 
-- `createPayout(params)`: Create cryptocurrency payout
+```javascript
+const ws = createWebSocketClient("YOUR_API_KEY");
 
-#### Other
+ws.on("connected", () => {
+  console.log("Connected to WebSocket");
+});
 
-- `getStatus()`: Check API status
-- `verifyIPN(data, signature)`: Verify IPN callback
+ws.on("payment_update", (update) => {
+  console.log("Payment update:", update);
+});
+
+ws.on("error", (error) => {
+  console.error("WebSocket error:", error);
+});
+
+ws.on("disconnected", (reason) => {
+  console.log("Disconnected:", reason);
+});
+```
 
 ### Error Handling
 
 ```javascript
+const { errors } = require('nowpayments-api');
+
 try {
-  const payment = await api.createPayment({
-    price_amount: 100,
-    price_currency: 'USD',
-    pay_currency: 'BTC'
-  });
+  await client.createPayment({...});
 } catch (error) {
-  if (error instanceof api.ValidationError) {
-    console.error('Invalid parameters:', error.message);
-  } else if (error instanceof api.APIError) {
-    console.error('API Error:', error.message);
-    console.error('Status Code:', error.code);
+  if (error instanceof errors.ValidationError) {
+    console.error('Invalid input:', error.details);
+  } else if (error instanceof errors.APIError) {
+    console.error('API error:', error.message);
   }
 }
 ```
 
-### TypeScript Support
+### IPN Verification
+
+```javascript
+// Verify IPN callback signature
+const isValid = client.verifyIPN(ipnData, signature);
+```
+
+## Available Methods
+
+### Payment Operations
+
+- `createPayment(params)` - Create new cryptocurrency payment
+- `getPaymentStatus(paymentId)` - Get payment status by ID
+- `getPayments(params)` - Get paginated list of payments
+- `getPaymentFlow(paymentId)` - Get detailed payment processing flow
+- `getMinimumPaymentAmount(currency)` - Get minimum payment amount for currency
+
+### Invoice Operations
+
+- `createInvoice(params)` - Create payment invoice
+- `getInvoicePaymentStatus(invoiceId)` - Get invoice payment status
+
+### Currency Operations
+
+- `getCurrencies()` - Get list of available cryptocurrencies
+- `getEstimatePrice(params)` - Get estimated price for currency conversion
+
+### Payout Operations
+
+- `createPayout(params)` - Create cryptocurrency payout
+- `createBatchPayout(params)` - Create batch cryptocurrency payout
+
+### Verification
+
+- `verifyIPN(ipnData, signature)` - Verify IPN callback signature
+- `getStatus()` - Check API availability
+
+### WebSocket Methods
+
+- `connect()` - Establish WebSocket connection
+- `close()` - Close WebSocket connection
+- `getState()` - Get current connection state
+
+### WebSocket Events
+
+- `connected` - Connection established
+- `disconnected` - Connection closed
+- `payment_update` - Payment status update received
+- `error` - Error occurred
+- `reconnecting` - Attempting to reconnect
+- `pong` - Heartbeat response received
+
+## TypeScript Support
+
+The package includes comprehensive TypeScript definitions:
 
 ```typescript
-import NowPaymentsAPI, { CreatePaymentParams, PaymentStatus } from 'nowpayments-api';
+import NowPaymentsAPI, { CreatePaymentParams, PaymentStatus } from "nowpayments-api";
 
-const api = new NowPaymentsAPI({
-  apiKey: 'YOUR_API_KEY'
+const client = new NowPaymentsAPI({
+  apiKey: "YOUR_API_KEY",
 });
 
-const params: CreatePaymentParams = {
+const payment: PaymentStatus = await client.createPayment({
   price_amount: 100,
-  price_currency: 'USD',
-  pay_currency: 'BTC'
-};
-
-const payment: PaymentStatus = await api.createPayment(params);
+  price_currency: "USD",
+  pay_currency: "BTC",
+} as CreatePaymentParams);
 ```
 
-## Development
+## Documentation
 
-```bash
-# Install dependencies
-npm install
+For detailed API documentation, visit:
 
-# Run tests
-npm test
+- [NOWPayments API Documentation](https://documenter.getpostman.com/view/7907941/2s93JusNJt)
+- [TypeScript Definitions](./types/index.d.ts)
+- [WebSocket Events](./types/websocket.d.ts)
 
-# Run linter
-npm run lint
+Key Resources:
 
-# Generate documentation
-npm run docs
-
-# Build TypeScript definitions
-npm run build
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- [Payment Methods](./types/index.d.ts#L36-L60)
+- [Currency Support](./lib/constants.js#L71-L74)
+- [Error Handling](./lib/errors.js)
+- [WebSocket Integration](./lib/WebSocketClient.js)
 
 ## License
 
