@@ -1,6 +1,6 @@
 {
   "name": "nowpayments-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NOWPayments API client for Node.js with WebSocket support",
   "main": "index.js",
   "types": "types/index.d.ts",
